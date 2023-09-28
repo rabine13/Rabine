@@ -7,6 +7,10 @@ editor: visual
 
 You may work in pairs or individually for this assignment. Make sure you join a group in Canvas if you are working in pairs. Turn in this assignment as an HTML or PDF file to ELMS. Make sure to include the R Markdown or Quarto file that was used to generate it.
 
+## Github link:
+
+<https://github.com/rabine13/Rabine/tree/Assignment-2>
+
 ```{r}
 #| message = FALSE
 library(tidyverse)
@@ -50,28 +54,35 @@ Answer the following questions for the keywords "crime" and "loans".
 
     ```{r}
     interest_city <- res$interest_by_city
-    #head(interest_city)
 
     interest_city_add <-interest_city %>%
                          pivot_wider(names_from= keyword, 
                            values_from= hits)
-     #sort(interest_city$loans, decreasing=TRUE, na.last = TRUE)
-
-       # ?sort
+    interest_city_add[order(interest_city_add$loans, decreasing= TRUE), ]
+     
     ```
+
+    The cities with the highest search frequency for loans were White City, Alorton, Oakwood, and Rosemont.
 
 -   Is there a relationship between the search intensities between the two keywords we used?
 
     ```{r}
-    addcols %>%
-    cor.test(crime,loans, 
+    cor.test(interest_city_add$crime,interest_city_add$loans, 
              alternative="greater", 
-             method= "pearson"
-             )
-    typeof(addcols$crime)
+             method= "pearson")
+             
+    ?cor.test
+
     ```
 
--   use correlation and plot it
+    ```{r}
+    library(ggplot2)
+    plot <- ggplot(interest_city_add, aes(y=crime, x=loans))+
+      geom_point(na.rm= TRUE)
+    plot + labs(x='loans searches', y= 'crime searches', title = 'crime searches by loan searches')
+    ```
+
+    The pearson's correlation coefficient indicates that there is a weak positive relationship between searches for the two terms, but since the p value is greater than .05, we conclude the relationship is not statistically significant.
 
 -   Repeat the above for keywords related to covid. Make sure you use multiple keywords like we did above. Try several different combinations and think carefully about words that might make sense within this context.
 
@@ -96,8 +107,33 @@ interest_otime %>%
 ```
 
 ```{r}
+interest_city_covid <- covid$interest_by_city
 
+interest_city_covid_add <-interest_city_covid %>%
+                     pivot_wider(names_from= keyword, 
+                       values_from= hits)
+interest_city_covid_add[order(interest_city_covid_add$flu, decreasing= TRUE), ]
 
+```
+
+North Aurora, Casey, Argenta, and Viola. had the highest searches for flu
+
+```{r}
+interest_city_covid_add[order(interest_city_covid_add$mask, decreasing= TRUE), ]
+```
+
+Coffeenn, Williamsville, Illiopolis, and Minier had the hightst searches for mask
+
+```{r}
+cor.test(interest_city_covid_add$mask,interest_city_covid_add$flu, 
+         alternative="greater", 
+         method= "pearson")
+```
+
+```{r}
+plot <- ggplot(interest_city_covid_add, aes(y=mask, x=flu))+
+  geom_point(na.rm= TRUE)
+plot + labs(x='mask searches', y= 'flu searches', title = 'flu searches by mask searches')
 ```
 
 ## Google Trends + ACS
@@ -200,20 +236,53 @@ Answer the following questions with the "crime" and "loans" Google trends data a
     ```{r}
     library(ggplot2)
     t <- ggplot(merged_df, aes(y=crime, x=hh_income))+
-      geom_point()
+      geom_point( na.rm= TRUE)
     t + labs(x='household income', y= 'crime searches', title = 'crime searches by household income')
        
     ```
 
 ```{r}
-library(ggplot2)
+
 t <- ggplot(merged_df, aes(y=loans, x=hh_income))+
-  geom_point()
+  geom_point(na.rm= TRUE)
 t + labs(x='household income', y= 'loans searches', title = 'loans searches by household income')
 ```
 
 Repeat the above steps using the covid data and the ACS data.
 
-Notes/ random codes
+# Covid trends and ACS data
 
-#crimess \<- subset.data.frame(res, keyword = crime, select= 1:4)
+```{r}
+merged_covid_df <- merge.data.frame(acs_with_location, interest_city_covid_add)
+head(merged_covid_df)
+```
+
+```{r}
+merged_covid_df %>%
+  group_by(hh_income>56094) %>%
+  summarize(mean_mask = mean(mask, na.rm = TRUE),
+            sd_mask = sd(mask, na.rm = TRUE),
+            med_mask = median(mask, na.rm = TRUE), 
+            var_mask = var(mask, na.rm = TRUE))
+```
+
+```{r}
+merged_covid_df %>%
+  group_by(hh_income>56094) %>%
+  summarize(mean_flu = mean(flu, na.rm = TRUE),
+            sd_flu = sd(flu, na.rm = TRUE),
+            med_flu = median(flu, na.rm = TRUE), 
+            var_flu = var(flu, na.rm = TRUE))
+```
+
+```{r}
+plott <- ggplot(merged_covid_df, aes(y=mask, x=hh_income))+
+  geom_point( na.rm= TRUE)
+plott + labs(x='household income', y= 'mask searches', title = 'mask searches by household income')
+```
+
+```{r}
+plottt <- ggplot(merged_covid_df, aes(y=flu, x=hh_income))+
+  geom_point( na.rm= TRUE)
+plottt + labs(x='household income', y= 'flu searches', title = 'flu searches by household income')
+```
