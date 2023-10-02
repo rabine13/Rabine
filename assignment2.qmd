@@ -3,20 +3,22 @@ title: "Assignment 2"
 subtitle: "Due at 11:59pm on October 3."
 format: pdf
 editor: visual
+author: Sol Rabine
 ---
 
 You may work in pairs or individually for this assignment. Make sure you join a group in Canvas if you are working in pairs. Turn in this assignment as an HTML or PDF file to ELMS. Make sure to include the R Markdown or Quarto file that was used to generate it.
 
 ## Github link:
 
-<https://github.com/rabine13/Rabine/tree/Assignment-2>
+<https://github.com/rabine13/Rabine/blob/main/assignment2.qmd>
 
 ```{r}
-#| message = FALSE
+#| message: FALSE
+#| echo: FALSE
 library(tidyverse)
 library(gtrendsR)
 library(censusapi)
-#?gtrends
+library(ggplot2)
 ```
 
 In this assignment, you will pull from APIs to get data from various data sources and use your data wrangling skills to use them all together. You should turn in a report in PDF or HTML format that addresses all of the questions in this assignment, and describes the data that you pulled and analyzed. You do not need to include full introduction and conclusion sections like a full report, but you should make sure to answer the questions in paragraph form, and include all relevant tables and graphics.
@@ -28,6 +30,7 @@ Whenever possible, use piping and `dplyr`. Avoid hard-coding any numbers within 
 Our first data source is the Google Trends API. Suppose we are interested in the search trends for `crime` and `loans` in Illinois in the year 2020. We could find this using the following code:
 
 ```{r}
+#| echo: FALSE
 res <- gtrends(c("crime", "loans"), 
                geo = "US-IL", 
                time = "2020-01-01 2020-12-31", 
@@ -40,6 +43,7 @@ Answer the following questions for the keywords "crime" and "loans".
 -   Find the mean, median and variance of the search hits for the keywords.
 
     ```{r}
+    #| echo: FALSE
     interest_time <- res$interest_over_time
     interest_time %>%
       group_by(keyword) %>%
@@ -47,57 +51,65 @@ Answer the following questions for the keywords "crime" and "loans".
                 sd_hits = sd(hits),
                 med_hits = median(hits), 
                 var_hits = var(hits))
-
     ```
 
 -   Which cities (locations) have the highest search frequency for `loans`? Note that there might be multiple rows for each city if there were hits for both "crime" and "loans" in that city. It might be easier to answer this question if we had the search hits info for both search terms in two separate variables. That is, each row would represent a unique city.
 
     ```{r}
+    #| echo: FALSE
     interest_city <- res$interest_by_city
 
     interest_city_add <-interest_city %>%
                          pivot_wider(names_from= keyword, 
                            values_from= hits)
-    interest_city_add[order(interest_city_add$loans, decreasing= TRUE), ]
-     
-    ```
+    loanorder <- interest_city_add[order(interest_city_add$loans, decreasing= TRUE), ]
+    head(loanorder) 
 
-    The cities with the highest search frequency for loans were White City, Alorton, Oakwood, and Rosemont.
+    location1 <- loanorder$location[[1]]
+    location2 <- loanorder$location[[2]]
+
+    paste("The cities with the highest loans searches were", location1, "and", location2,".")
+    ```
 
 -   Is there a relationship between the search intensities between the two keywords we used?
 
     ```{r}
+    #| echo: FALSE
     cor.test(interest_city_add$crime,interest_city_add$loans, 
              alternative="greater", 
              method= "pearson")
-             
-    ?cor.test
 
     ```
 
     ```{r}
+    #| echo: FALSE
     library(ggplot2)
     plot <- ggplot(interest_city_add, aes(y=crime, x=loans))+
       geom_point(na.rm= TRUE)
     plot + labs(x='loans searches', y= 'crime searches', title = 'crime searches by loan searches')
     ```
 
-    The pearson's correlation coefficient indicates that there is a weak positive relationship between searches for the two terms, but since the p value is greater than .05, we conclude the relationship is not statistically significant.
+    There is not a statistically significant relationship between crime searches and loan searches.
+
+    # Covid Google Trends
 
 -   Repeat the above for keywords related to covid. Make sure you use multiple keywords like we did above. Try several different combinations and think carefully about words that might make sense within this context.
 
 ```{r}
+#| echo: FALSE
 covid <- gtrends(c("mask", "flu"), 
                geo = "US-IL", 
                time = "2020-01-01 2020-12-31", 
                low_search_volume = TRUE)
 plot(covid)
-# tried fever, lockdown, lock down, pandemic, virus, flu, long covid
+
 ```
 
+I tried fever, lockdown, pandemic, virus, and long covid, but flu and mask had the most interesting patterns to me.
+
 ```{r}
+#| echo: FALSE
 interest_otime <- covid$interest_over_time
-head(interest_otime)
 interest_otime %>%
   group_by(keyword) %>%
   summarize(mean_hits = mean(hits),
@@ -107,34 +119,48 @@ interest_otime %>%
 ```
 
 ```{r}
+#| echo: FALSE
 interest_city_covid <- covid$interest_by_city
 
 interest_city_covid_add <-interest_city_covid %>%
                      pivot_wider(names_from= keyword, 
                        values_from= hits)
-interest_city_covid_add[order(interest_city_covid_add$flu, decreasing= TRUE), ]
+order1 <- interest_city_covid_add[order(interest_city_covid_add$flu, decreasing= TRUE), ]
+head(order1)
+location1 <- order1$location[[1]]
+location2 <- order1$location[[2]]
+
+paste("The cities with the highest flu searches were", location1, "and", location2,".")
+
 
 ```
 
-North Aurora, Casey, Argenta, and Viola. had the highest searches for flu
-
 ```{r}
-interest_city_covid_add[order(interest_city_covid_add$mask, decreasing= TRUE), ]
+#| echo: FALSE
+order2 <- interest_city_covid_add[order(interest_city_covid_add$mask, decreasing= TRUE), ]
+head(order2)
+
+location1 <- order2$location[[1]]
+location2 <- order2$location[[2]]
+
+paste("The cities with the highest mask searches were", location1, "and", location2,".")
 ```
 
-Coffeenn, Williamsville, Illiopolis, and Minier had the hightst searches for mask
-
 ```{r}
+#| echo: FALSE
 cor.test(interest_city_covid_add$mask,interest_city_covid_add$flu, 
          alternative="greater", 
          method= "pearson")
 ```
 
 ```{r}
+#| echo: FALSE
 plot <- ggplot(interest_city_covid_add, aes(y=mask, x=flu))+
   geom_point(na.rm= TRUE)
 plot + labs(x='mask searches', y= 'flu searches', title = 'flu searches by mask searches')
 ```
+
+There is not a statistically significant relationship between searches for mask and searches for flu.
 
 ## Google Trends + ACS
 
@@ -145,15 +171,14 @@ Now lets add another data set. The `censusapi` package provides a nice R interfa
 Once you have an access key, store this key in the `cs_key` object. We will use this object in all following API queries.
 
 ```{r}
-#| eval: false
+#| echo: FALSE
 cs_key <- '69579ddbfe9c345e6bdf8ee1e513354bd8f77b5b'
 ```
 
 In the following, we request basic socio-demographic information (population, median age, median household income, income per capita) for cities and villages in the state of Illinois.
 
 ```{r}
-#| eval: false
-
+#| echo: FALSE
 acs_il <- getCensus(name = "acs/acs5",
                     vintage = 2020, 
                     vars = c("NAME", 
@@ -164,23 +189,20 @@ acs_il <- getCensus(name = "acs/acs5",
                     region = "place:*", 
                     regionin = "state:17",
                     key = cs_key)
-head(acs_il)
 ```
 
 Convert values that represent missings to NAs.
 
 ```{r}
-#| eval: false
-
+#| echo: FALSE
 acs_il[acs_il == -666666666] <- NA
 ```
 
 Now, it might be useful to rename the socio-demographic variables (`B01001_001E` etc.) in our data set and assign more meaningful names.
 
 ```{r}
-#| eval: false
-acs_il <-
-  acs_il %>%
+#| echo: FALSE
+acs_il <-acs_il %>%
   rename(pop = B01001_001E, 
          age = B06002_001E, 
          hh_income = B19013_001E, 
@@ -190,11 +212,12 @@ acs_il <-
 It seems like we could try to use this location information listed above to merge this data set with the Google Trends data. However, we first have to clean `NAME` so that it has the same structure as `location` in the search interest by city data. Add a new variable `location` to the ACS data that only includes city names.
 
 ```{r}
-#remove( , Illinois)
+#| echo: FALSE
 no_village <- gsub(' village, Illinois', '', acs_il$NAME)
 no_city <- gsub(' city, Illinois', '', no_village)
 acs_with_location <- acs_il %>% mutate(location = no_city)
 acs_with_location %>% head(5)
+
 ```
 
 Answer the following questions with the "crime" and "loans" Google trends data and the ACS data.
@@ -202,18 +225,22 @@ Answer the following questions with the "crime" and "loans" Google trends data a
 -   First, check how many cities don't appear in both data sets, i.e. cannot be matched. Then, create a new data set by joining the Google Trends and the ACS data. Keep only cities that appear in both data sets.
 
     ```{r}
+    #| echo: FALSE
     merged_df <- merge.data.frame(acs_with_location, interest_city_add)
-    head(merged_df)
+    #head(merged_df)
     ```
 
 -   Compute the mean of the search popularity for both keywords for cities that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks. What conclusions might you draw from this?
 
     ```{r}
+    #| echo: FALSE
     summary(merged_df$hh_income)
     ```
 
-    ```{r}
+    Median household income = 56094.
 
+    ```{r}
+    #| echo: FALSE
     merged_df %>%
       group_by(hh_income>56094) %>%
       summarize(mean_loans = mean(loans, na.rm = TRUE),
@@ -222,7 +249,10 @@ Answer the following questions with the "crime" and "loans" Google trends data a
                 var_loans = var(loans, na.rm = TRUE))
     ```
 
+    For cities with a higher household income, there were on average fewer searches for loans. This indicates that those who are wealthier or live in wealthier areas are less interested in learning about or taking out a loan.
+
     ```{r}
+    #| echo: FALSE
     merged_df %>%
       group_by(hh_income>56094) %>%
       summarize(mean_crime = mean(crime, na.rm = TRUE),
@@ -231,9 +261,19 @@ Answer the following questions with the "crime" and "loans" Google trends data a
                 var_crime = var(crime, na.rm = TRUE))
     ```
 
+    In areas with a higher household income, there were fewer on average searches for crime. This indicates that people in these areas were less concerned about or interested in crime. There is however a greater variance in crime searches for the wealthier areas than the lower income areas. This may indicate that some of the wealthier areas had greater concern about crime than others. With just this data we cannot conclude the reason for this variance, but could speculate that some of the higher income cities had experienced more crimes and so people were doing more google searches about it.
+
 -   Is there a relationship between the median household income and the search popularity of the Google trends terms? Describe the relationship and use a scatterplot with `qplot()`.
 
     ```{r}
+    #| echo: FALSE
+    cor.test(merged_df$hh_income,merged_df$crime, 
+             alternative="greater", 
+             method= "pearson")
+    ```
+
+    ```{r}
+    #| echo: FALSE
     library(ggplot2)
     t <- ggplot(merged_df, aes(y=crime, x=hh_income))+
       geom_point( na.rm= TRUE)
@@ -241,23 +281,36 @@ Answer the following questions with the "crime" and "loans" Google trends data a
        
     ```
 
-```{r}
+There is not a statistically significant relationship between household income and crime searches
 
+```{r}
+#| echo: FALSE
+cor.test(merged_df$hh_income,merged_df$loans, 
+         alternative="greater", 
+         method= "pearson")
+```
+
+```{r}
+#| echo: FALSE
 t <- ggplot(merged_df, aes(y=loans, x=hh_income))+
   geom_point(na.rm= TRUE)
 t + labs(x='household income', y= 'loans searches', title = 'loans searches by household income')
 ```
+
+There is not a statistically significant relationship between household income and loans searches
 
 Repeat the above steps using the covid data and the ACS data.
 
 # Covid trends and ACS data
 
 ```{r}
+#| echo: FALSE
 merged_covid_df <- merge.data.frame(acs_with_location, interest_city_covid_add)
-head(merged_covid_df)
+
 ```
 
 ```{r}
+#| echo: FALSE
 merged_covid_df %>%
   group_by(hh_income>56094) %>%
   summarize(mean_mask = mean(mask, na.rm = TRUE),
@@ -266,7 +319,10 @@ merged_covid_df %>%
             var_mask = var(mask, na.rm = TRUE))
 ```
 
+The cities with a higher income had slightly higher searches for mask. It is hard to draw any solid conclusions from this data, but it is possible that those with a higher income were more likely to search for or buy masks online.
+
 ```{r}
+#| echo: FALSE
 merged_covid_df %>%
   group_by(hh_income>56094) %>%
   summarize(mean_flu = mean(flu, na.rm = TRUE),
@@ -275,14 +331,36 @@ merged_covid_df %>%
             var_flu = var(flu, na.rm = TRUE))
 ```
 
+Low and high income cities were very close in their average searches for flu, with higher income cities having slightly higher searches. This is not too surprising, as we would expect the flu virus to affect all income levels pretty evenly. Given that these searches were made during the COVID-19 pandemic, the flu was a much smaller issue. I thought it would be interesting to look at flu searches, as I remember many people being encouraged to get their flu shot during this time to reduce the burden on the healthcare system and protect immunocompromised people. I did expect that searches would be higher for higher income cities, but the difference is pretty small
+
 ```{r}
+#| echo: FALSE
+cor.test(merged_covid_df$hh_income,merged_covid_df$mask, 
+         alternative="greater", 
+         method= "pearson")
+```
+
+```{r}
+#| echo: FALSE
 plott <- ggplot(merged_covid_df, aes(y=mask, x=hh_income))+
   geom_point( na.rm= TRUE)
 plott + labs(x='household income', y= 'mask searches', title = 'mask searches by household income')
 ```
 
+There is not a statistically significant relationship between household income and mask searches.
+
 ```{r}
+#| echo: FALSE
+cor.test(merged_covid_df$hh_income,merged_covid_df$flu, 
+         alternative="greater", 
+         method= "pearson")
+```
+
+```{r}
+#| echo: FALSE
 plottt <- ggplot(merged_covid_df, aes(y=flu, x=hh_income))+
   geom_point( na.rm= TRUE)
 plottt + labs(x='household income', y= 'flu searches', title = 'flu searches by household income')
 ```
+
+There is not a statistically significant relationship between household income and flu searches.
